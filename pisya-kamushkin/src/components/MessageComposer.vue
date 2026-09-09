@@ -6,7 +6,7 @@
   const emit = defineEmits<{
     send: [body:string]
   }>();
-
+  let closeTimeout: ReturnType<typeof setTimeout> | null = null;
   // Текст, который пользователь воодит
   const draft = ref("");
 
@@ -17,9 +17,30 @@
     emit("send", body);
 
     draft.value = ""
-
-
   }
+  const emoji: string[] = ['😁','😀','🤡','💩'];
+
+  const isOpen = ref(false)
+
+  function addEmoji(emojiChar: string) {
+    draft.value += emojiChar;
+  }
+  function openEmojiList() {
+
+    if (closeTimeout) {
+      clearTimeout(closeTimeout);
+      closeTimeout = null;
+    }
+    isOpen.value = true;
+  }
+
+  function CloseEmojiList() {
+
+    closeTimeout = setTimeout(() => {
+      isOpen.value = false;
+      closeTimeout = null;
+    }, 500);
+}
 </script>
 
 <template>
@@ -33,6 +54,21 @@
         placeholder="Ну пиши уже че нить"
         autocomplete="off"
     />
+    <div class="emoji-container" @mouseenter="openEmojiList" @mouseleave="CloseEmojiList">
+      <button type="button" class="emoji" @click="isOpen = true" >🙂</button>
+      <div v-if="isOpen" class="emoji-list">
+        <button
+            v-for="(emojiChar, index) in emoji"
+            :key="index"
+            type="button"
+            class="emoji-item"
+            @click="addEmoji(emojiChar)"
+        >
+          {{ emojiChar }}
+        </button>
+      </div>
+    </div>
+
     <button type="submit">Отправить</button>
   </form>
 </template>
@@ -70,5 +106,43 @@
   background: #F3FF33;
   font: inherit;
   font-weight: 600;
+}
+.emoji-container {
+  position: relative;
+  display: inline-block;
+}
+.emoji{
+  padding: 18px;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  color: #000000;
+  background: #F3FF33;
+  font: inherit;
+  font-weight: 600;
+}
+.emoji-list {
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  padding: 8px;
+  background: #23422f;
+  border: 1px solid #135334;
+  border-radius: 7px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+.emoji-item {
+  padding: 8px 10px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+.emoji-item:hover {
+  transform: scale(1.2);
+  background-color: #2a4d38;
 }
 </style>

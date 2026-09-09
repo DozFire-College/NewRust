@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { User } from "/..types/user.ts";
+import type { User } from "../types/user.ts";
 defineProps<{
-  user: User[];
+  users: User[];
 
   currentUserId: number;
 }>();
@@ -46,9 +46,10 @@ function selectUser(user: User){
   color: #8f96a3;
   font-size: 12px;
 }
+
 .user-switcher__button{
   padding: 6px 10px;
-  border: 1px solid #343842;
+  border: 1px solid #e30000;
   border-radius: 6px;
   cursor: pointer;
   background: #20232A;
@@ -58,7 +59,7 @@ function selectUser(user: User){
 }
 
 .user-switcher__button--active{
-  background: #386be0;
+  background: #ff0000;
   border-color: #386be0;
   color: white;
 }

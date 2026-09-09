@@ -3,6 +3,7 @@
 // on Mounted - запускает код после появления компонента
 //ref - создаёт быстрые перемещения
 import { onMounted, ref } from "vue";
+import type {User} from "./types/user";
 import {Message} from "./types/message.ts";
 import Database from "@tauri-apps/plugin-sql";
 import AppHeader from "./components/AppHeader.vue";
@@ -10,7 +11,38 @@ import MessageComposer from "./components/MessageComposer.vue";
 import MessageList from "./components/MessageList.vue";
 //Создаем структуру одного сообщения
 
+const oleg: User = {
+  id: 1,
+  name: "Oleg",
+};
+const kirill: User = {
+  id: 2,
+  name: "Кирилл"
+};
 
+const users: User[] = [
+    oleg,
+    kirill,
+];
+
+const currentUser = ref<User>(oleg);
+
+function  selectUser(user: User){
+  currentUser.value = user;
+}
+
+async function sendMessage (body: string){
+  if (!db) return;
+
+  await db.execute(
+      "INSERT INTO messages (author, body) VALUES ($1, $2)",
+      [
+          currentUser.value.name,
+          body,
+      ],
+  );
+  await loadMessages()
+}
 
 //Список сообщений, которые vue отображает в диалоге на экране
 
@@ -38,15 +70,7 @@ async function loadMessages(){
   // После отправки очищаем поле ввода
 
   //Обновляем историю сообщений в чате
-async function sendMessage(body: string){
-  if (!db) return;
 
-  await db.execute(
-      "INSERT INTO messages (author, body) VALUES ($1, $2)",
-      ["Вы", body],
-  );
-  await loadMessages();
-}
 // Vue выполнит код ниже, когда интерфейс программы уже загрузится
 onMounted(async ()=> {
   try{
@@ -71,13 +95,18 @@ onMounted(async ()=> {
 <template>
 
   <main class="App">
-    <AppHeader :status="status"/>
+    <AppHeader :status="status"
+    :users="users"
+    :current-user="currentUser"
+    @select="selectUser"
+    />
     <section class="chat">
       <div class="chat-info">
         <h2>Первый чат</h2>
         <p>Первый локальный мессенджер</p>
       </div>
-        <MessageList :messages="messages"/>
+        <MessageList :messages="messages"
+        :current-user-name="currentUser.name"/>
         <MessageComposer @send="sendMessage"/>
         <!-- Vue создаёт article для каждого сообщения из базы -->
 

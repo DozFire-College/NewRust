@@ -3,12 +3,17 @@ import type { Message } from "../types/message.ts";
 
 defineProps<{
   message: Message;
+  isOwn: boolean;
 }>();
 </script>
 
 <template>
   <article
       class="message"
+      :class="{
+    'message--own': isOwn,
+    'message--other': !isOwn,
+      }"
   >
     <p> {{message.body}}</p>
     <footer>
@@ -27,12 +32,15 @@ defineProps<{
 
 <style scoped>
 .message{
-  align-self: flex-end;
   max-width: 70%;
   margin: 0;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #f34242;
+  align-self: flex-end;
+}
+.message--own{
+  align-self: flex-start;
+  background: #252830;
 }
 .message p{
   margin: 0;
@@ -44,7 +52,7 @@ defineProps<{
   justify-content: flex-end;
   gap: 5px;
   margin-top: 6px;
-  color: #413431;
+  color: #b5bbc7;
   font-size: 10px;
 }
 </style>

@@ -10,6 +10,7 @@ import type { Message} from "../types/message.ts";
 
 const props = defineProps< {
 messages: Message[];
+currentUserName: string;
 
 }>();
 
@@ -53,6 +54,7 @@ onMounted(scrollToBottom);
           :key="message.id"
 
           :message="message"
+          :is-own="message.author === currentUserName"
       />
       <div
       ref="bottomAnchor"
