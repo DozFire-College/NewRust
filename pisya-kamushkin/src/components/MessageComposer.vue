@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import {ref} from "vue";
+  import { open } from "@tauri-apps/plugin-dialog";
 
   //define emits сообщает движку vue какие из событий данный компонент
   // имеет право рассылать
@@ -9,7 +10,30 @@
   let closeTimeout: ReturnType<typeof setTimeout> | null = null;
   // Текст, который пользователь воодит
   const draft = ref("");
+  const imagePath = ref<string | null>(null);
+  async function sendFile (){
+    const file = await open({
+      multiple: false,
+      filters: [
+        {
+          name: "Images",
 
+          extensions: [
+            "png",
+            "jpg",
+            "jpeg",
+            "webp"
+          ]
+        }
+      ]
+    });
+    if (!file) return;
+
+    imagePath.value = file as string;
+
+
+    emit("send", `${file}`);
+  }
   function submitMessage(){
     const body = draft.value.trim()
 
@@ -68,6 +92,7 @@
         </button>
       </div>
     </div>
+    <button class="ImgAdd" @click="sendFile">📎</button>
 
     <button type="submit">Отправить</button>
   </form>
@@ -144,5 +169,15 @@
 .emoji-item:hover {
   transform: scale(1.2);
   background-color: #2a4d38;
+}
+.ImgAdd{
+  padding: 18px;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  color: #000000;
+  background: #F3FF33;
+  font: inherit;
+  font-weight: 600;
 }
 </style>
