@@ -1,44 +1,31 @@
-// Импорт типов, необходимых для migrations
 use tauri_plugin_sql::{Migration, MigrationKind};
 
-//Аннотация необходимая Tauri для мобильных платформ
-// На Windows она не мешает
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-
-//Главная функция для запуска приложения
-pub fn run(){
-    // Создание списка миграций
+pub fn run() {
     let migrations = vec![
-        // описание первой миграции
         Migration {
             version: 1,
-
             description: "create_message_table",
-
-            //Берём SQL запрос из нашего файла
-            sql:include_str!("../migrations/0001_initial.sql"),
-
-            // up обозначает что база сдвинется вперёд
+            sql: include_str!("../migrations/0001_initial.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 2,
+            description: "add_image_to_messages",
+            sql: include_str!("../migrations/0002_add_image_to_messages.sql"),
             kind: MigrationKind::Up,
         },
     ];
 
-    //Сборщик приложения Tauri
     tauri::Builder::default()
-    //Подключаем sql плагин
+        .plugin(tauri_plugin_dialog::init())
         .plugin(
-            //сборщик плагинов
             tauri_plugin_sql::Builder::default()
-            //Связываем migrations с базой sql
                 .add_migrations("sqlite:messenger.db", migrations)
-            // Собираем плагины
-                .build()
-
+                .build(),
         )
-    // Создаём plugin opener
         .plugin(tauri_plugin_opener::init())
-    //Запускаем приложение
+        .plugin(tauri_plugin_fs::init())
         .run(tauri::generate_context!())
-         //Если запуск завершился ошибкой, то сообщаем об этом
-    .expect("ошибка при сборке приложения");
+        .expect("ошибка при сборке приложения");
 }

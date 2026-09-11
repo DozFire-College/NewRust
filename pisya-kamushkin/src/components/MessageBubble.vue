@@ -1,10 +1,27 @@
 <script setup lang="ts">
+import { computed, ref } from "vue";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Message } from "../types/message.ts";
 
-defineProps<{
+const props = defineProps<{
   message: Message;
   isOwn: boolean;
 }>();
+
+const imageLoaded = ref(true);
+
+const imageSrc = computed(() => {
+  if (!props.message.image) return null;
+  return convertFileSrc(props.message.image);
+});
+
+const hasBody = computed(() => {
+  return props.message.body && props.message.body.trim().length > 0;
+});
+
+function onImageError() {
+  imageLoaded.value = false;
+}
 </script>
 
 <template>
@@ -15,7 +32,14 @@ defineProps<{
     'message--other': !isOwn,
       }"
   >
-    <p> {{message.body}}</p>
+    <img
+        v-if="imageSrc && imageLoaded"
+        :src="imageSrc"
+        alt="image"
+        class="message-image"
+        @error="onImageError"
+    />
+    <p v-if="hasBody"> {{message.body}}</p>
     <footer>
             <span>
               {{message.author}}
@@ -42,10 +66,19 @@ defineProps<{
   align-self: flex-start;
   background: #252830;
 }
+.message-image{
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  object-fit: contain;
+  display: block;
+}
 .message p{
   margin: 0;
   line-height: 1.45;
   overflow-wrap:anywhere;
+  color: #fff;
 }
 .message footer{
   display: flex;
