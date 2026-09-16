@@ -53,6 +53,10 @@ const activeChat = ref<Chat | null>(null);
 
 const activeChatId = ref(1);
 
+const isEditingChatInfo = ref(false);
+const editingTitle = ref("");
+const editingSubtitle = ref("");
+
 // Статус подключения к бд
 const status = ref("Подключение...")
 
@@ -117,6 +121,43 @@ async function sendMessage(body: string, attachment: string | null = null){
   await loadMessages(activeChat.value.id)
 }
 
+async function updateChat(chatId: number, title: string, subtitle: string){
+  if (!db) return;
+
+  await db.execute(
+    "UPDATE chats SET title = $1, subtitle = $2 WHERE id = $3",
+    [title, subtitle, chatId],
+  );
+
+  const chatIndex = chats.value.findIndex(c => c.id === chatId);
+  if (chatIndex !== -1){
+    chats.value[chatIndex] = { ...chats.value[chatIndex], title, subtitle };
+  }
+
+  if (activeChat.value && activeChat.value.id === chatId){
+    activeChat.value = { ...activeChat.value, title, subtitle };
+  }
+}
+
+function startEditChatInfo(){
+  if (!activeChat.value) return;
+  editingTitle.value = activeChat.value.title;
+  editingSubtitle.value = activeChat.value.subtitle;
+  isEditingChatInfo.value = true;
+}
+
+function cancelEditChatInfo(){
+  isEditingChatInfo.value = false;
+}
+
+async function saveEditChatInfo(){
+  if (!activeChat.value) return;
+  const newTitle = editingTitle.value.trim() || activeChat.value.title;
+  const newSubtitle = editingSubtitle.value.trim();
+  await updateChat(activeChat.value.id, newTitle, newSubtitle);
+  isEditingChatInfo.value = false;
+}
+
 // VUE выполнит код ниже, когда интерфейс программы уже загрузится
 onMounted(async()=>{
   try{
@@ -154,8 +195,54 @@ onMounted(async()=>{
       <section class="chat">
         <template v-if="activeChat">
           <div class="chat-info">
-            <h2>{{ activeChat.title }}</h2>
-            <p>{{ activeChat.subtitle }}</p>
+            <template v-if="!isEditingChatInfo">
+              <div class="chat-info__content">
+                <h2>{{ activeChat.title }}</h2>
+                <p>{{ activeChat.subtitle }}</p>
+              </div>
+              <button
+                type="button"
+                class="chat-info__edit-btn"
+                @click="startEditChatInfo"
+                title="Изменить название чата"
+              >
+                ✎
+              </button>
+            </template>
+            <template v-else>
+              <div class="chat-info__edit-form">
+                <input
+                  v-model="editingTitle"
+                  type="text"
+                  class="chat-info__input chat-info__input--title"
+                  placeholder="Название чата"
+                  maxlength="50"
+                />
+                <input
+                  v-model="editingSubtitle"
+                  type="text"
+                  class="chat-info__input chat-info__input--subtitle"
+                  placeholder="Описание чата"
+                  maxlength="100"
+                />
+                <div class="chat-info__edit-actions">
+                  <button
+                    type="button"
+                    class="chat-info__btn chat-info__btn--save"
+                    @click="saveEditChatInfo"
+                  >
+                    Сохранить
+                  </button>
+                  <button
+                    type="button"
+                    class="chat-info__btn chat-info__btn--cancel"
+                    @click="cancelEditChatInfo"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            </template>
           </div>
           <MessageList
               :messages="messages"
@@ -224,6 +311,15 @@ onMounted(async()=>{
 .chat-info{
   padding: 20px 24px;
   border-bottom: 1px solid #252830;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.chat-info__content{
+  flex: 1;
+  min-width: 0;
 }
 
 .chat-info h2{
@@ -235,6 +331,96 @@ onMounted(async()=>{
   margin: 5px 0 0;
   color: #858c98;
   font-size: 13px;
+}
+
+.chat-info__edit-btn{
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #252830;
+  border-radius: 8px;
+  background: #20232a;
+  color: #f2f3f5;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.chat-info__edit-btn:hover{
+  background: #292c34;
+  border-color: #3a3f4b;
+}
+
+.chat-info__edit-form{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-info__input{
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #252830;
+  border-radius: 8px;
+  background: #111318;
+  color: #f2f3f5;
+  font: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.chat-info__input:focus{
+  border-color: #5b5fc7;
+}
+
+.chat-info__input--title{
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.chat-info__input--subtitle{
+  font-size: 13px;
+  color: #858c98;
+}
+
+.chat-info__edit-actions{
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.chat-info__btn{
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+
+.chat-info__btn--save{
+  background: #5b5fc7;
+  color: #fff;
+}
+
+.chat-info__btn--save:hover{
+  background: #6c70d9;
+}
+
+.chat-info__btn--cancel{
+  background: #20232a;
+  color: #f2f3f5;
+  border: 1px solid #252830;
+}
+
+.chat-info__btn--cancel:hover{
+  background: #292c34;
 }
 
 </style>
