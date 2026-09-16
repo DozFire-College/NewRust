@@ -79,37 +79,39 @@ async function selectChat(chat: Chat){
   await loadMessages(chat.id);
 }
 
-// Асинхронная функция загрузки сообщений из sql
 async function loadMessages(chatId: number){
-  // Если база еще не подключена, прерываем выполнение
   if (!db) return;
 
-  // Читаем данные из таблицы messages
   messages.value = await db.select<Message[]>(
-    "SELECT id, author, body, created_at FROM messages WHERE chat_id = $1 ORDER BY id ASC",
+    "SELECT id, author, body, created_at, type, attachment FROM messages WHERE chat_id = $1 ORDER BY id ASC",
       [chatId],
   );
 }
 
-// Функция отправки нового сообщения
-async function sendMessage(body: string){
+async function sendMessage(body: string, attachment: string | null = null){
   if (!db) return;
 
   if (!activeChat.value) return;
+
+  const messageType = attachment ? 'image' : 'text';
 
   await db.execute(
     `
        INSERT INTO messages (
             chat_id,
             author,
-            body
+            body,
+            type,
+            attachment
        )
-       VALUES ($1, $2, $3)
+       VALUES ($1, $2, $3, $4, $5)
     `,
       [
           activeChat.value.id,
           currentUser.value.name,
           body,
+          messageType,
+          attachment,
       ],
   );
   await loadMessages(activeChat.value.id)
@@ -159,7 +161,7 @@ onMounted(async()=>{
               :messages="messages"
               :current-user-name="currentUser.name"
           />
-          <MessageComposer @send="sendMessage" />
+          <MessageComposer @send="(body, attachment) => sendMessage(body, attachment)" />
         </template>
       </section>
     </div>

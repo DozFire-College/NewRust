@@ -1,11 +1,26 @@
 <script setup lang="ts">
 
 import type { Message } from "../types/message";
+import { computed } from "vue";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
-defineProps<{
+const props = defineProps<{
   message: Message;
   isOwn: boolean;
 }>();
+
+const attachmentSrc = computed(() => {
+  if (props.message.attachment) {
+    return convertFileSrc(props.message.attachment);
+  }
+  return null;
+});
+
+const isImage = computed(() => {
+  if (!props.message.attachment) return false;
+  const ext = props.message.attachment.split('.').pop()?.toLowerCase();
+  return ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext || '');
+});
 </script>
 
 <template>
@@ -16,7 +31,10 @@ defineProps<{
         'message--other': !isOwn,
       }"
   >
-    <p>
+    <div v-if="isImage && attachmentSrc" class="attachment-image">
+      <img :src="attachmentSrc" alt="Attachment" />
+    </div>
+    <p v-if="message.body">
       {{message.body}}
     </p>
     <footer>
@@ -48,6 +66,18 @@ defineProps<{
 .message--other{
   align-self: flex-start;
   background: #252830;
+}
+
+.attachment-image{
+  margin-bottom: 8px;
+}
+
+.attachment-image img{
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  display: block;
+  object-fit: contain;
 }
 
 .message p{
