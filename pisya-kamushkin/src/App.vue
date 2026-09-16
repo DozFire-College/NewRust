@@ -1,64 +1,134 @@
 <script setup lang="ts">
+
+import type { User } from "./types/user";
+
+// Импорт 2 функций из vue
+// onMounted - запускает код после появления компонента
+// ref -  создает быстрые перемещения
 import { onMounted, ref } from "vue";
-import type {User} from "./types/user";
-import {Message} from "./types/message.ts";
+
 import Database from "@tauri-apps/plugin-sql";
+
 import AppHeader from "./components/AppHeader.vue";
-import MessageComposer from "./components/MessageComposer.vue";
+
 import MessageList from "./components/MessageList.vue";
+
+import MessageComposer from "./components/MessageComposer.vue";
+
+import ChatSidebar from "./components/ChatSidebar.vue";
+
+import type { Chat } from "./types/chats";
+
+import type { Message } from "./types/message";
 
 const oleg: User = {
   id: 1,
-  name: "Oleg",
-};
-const kirill: User = {
-  id: 2,
-  name: "Кирилл"
+  name: "Олег",
 };
 
-const users: User[] = [
-    oleg,
-    kirill,
+const kirill: User = {
+  id: 2,
+  name: "Кирилл",
+};
+
+const users: User[] =[
+  oleg,
+  kirill,
 ];
 
 const currentUser = ref<User>(oleg);
 
-function  selectUser(user: User){
+function selectUser(user: User){
   currentUser.value = user;
 }
 
-async function sendMessage (payload: { body: string; image: string | null }){
-  if (!db) return;
+// Создаем структуру одного сообщения
 
-  await db.execute(
-      "INSERT INTO messages (author, body, image) VALUES ($1, $2, $3)",
-      [
-          currentUser.value.name,
-          payload.body,
-          payload.image,
-      ],
-  );
-  await loadMessages()
-}
-
+// Список сообщений, которые vue отображет в диалоге на экране
 const messages = ref<Message[]>([]);
-const status = ref("Подключение..");
+
+const chats = ref<Chat[]>([]);
+
+const activeChat = ref<Chat | null>(null);
+
+const activeChatId = ref(1);
+
+// Статус подключения к бд
+const status = ref("Подключение...")
+
+// Здесь будет подключение к бд (честно), но пока тут null
 let db: Database | null = null;
 
-async function loadMessages(){
+async function loadChats(){
   if (!db) return;
+
+  chats.value = await db.select<Chat[]>(
+    "SELECT id, title, subtitle FROM chats ORDER BY id ASC",
+  );
+
+  if (chats.value.length > 0){
+    await selectChat(chats.value[0]);
+  }
+}
+
+async function selectChat(chat: Chat){
+  activeChat.value = chat;
+
+  activeChatId.value = chat.id;
+
+  await loadMessages(chat.id);
+}
+
+// Асинхронная функция загрузки сообщений из sql
+async function loadMessages(chatId: number){
+  // Если база еще не подключена, прерываем выполнение
+  if (!db) return;
+
+  // Читаем данные из таблицы messages
   messages.value = await db.select<Message[]>(
-    "SELECT id, author, body, COALESCE(image, NULL) as image, created_at FROM messages ORDER BY id ASC",
+    "SELECT id, author, body, created_at FROM messages WHERE chat_id = $1 ORDER BY id ASC",
+      [chatId],
   );
 }
 
-onMounted(async ()=> {
+// Функция отправки нового сообщения
+async function sendMessage(body: string){
+  if (!db) return;
+
+  if (!activeChat.value) return;
+
+  await db.execute(
+    `
+       INSERT INTO messages (
+            chat_id,
+            author,
+            body
+       )
+       VALUES ($1, $2, $3)
+    `,
+      [
+          activeChat.value.id,
+          currentUser.value.name,
+          body,
+      ],
+  );
+  await loadMessages(activeChat.value.id)
+}
+
+// VUE выполнит код ниже, когда интерфейс программы уже загрузится
+onMounted(async()=>{
   try{
+    // Открываем бд
     db = await Database.load("sqlite:messenger.db");
-    await loadMessages();
+
+    // Загружаем из базы старые сообщения
+    await loadChats();
+
+    // Показываем успешеное состоние
     status.value = "История сохраняется локально";
   }catch (error){
     console.error(error);
+
     status.value = "Ошибка подключения к базе";
   }
 });
@@ -66,80 +136,113 @@ onMounted(async ()=> {
 </script>
 
 <template>
-
-  <main class="App">
-    <AppHeader :status="status"
-    :users="users"
-    :current-user="currentUser"
-    @select="selectUser"
+  <main class="app">
+    <AppHeader
+        :status="status"
+        :users="users"
+        :current-user="currentUser"
+        @select="selectUser"
     />
-    <section class="chat">
-      <div class="chat-info">
-        <h2>Первый чат</h2>
-        <p>Первый локальный мессенджер</p>
-      </div>
-        <MessageList :messages="messages"
-        :current-user-name="currentUser.name"/>
-        <MessageComposer @send="sendMessage"/>
-
-    </section>
+    <div class="workspace">
+      <ChatSidebar
+          :chats="chats"
+          :active-chat-id="activeChatId"
+          @select="selectChat"
+      />
+      <section class="chat">
+        <template v-if="activeChat">
+          <div class="chat-info">
+            <h2>{{ activeChat.title }}</h2>
+            <p>{{ activeChat.subtitle }}</p>
+          </div>
+          <MessageList
+              :messages="messages"
+              :current-user-name="currentUser.name"
+          />
+          <MessageComposer @send="sendMessage" />
+        </template>
+      </section>
+    </div>
   </main>
-
 </template>
 
 <style scoped>
+/* Все элементы будут использовать одну модель размеров */
 :global(*){
   box-sizing: border-box;
 }
+
 :global(html){
-  background: #ffffff;
+  background: #111318;
   color-scheme: dark;
 }
+
 :global(body){
   margin: 0;
 
   font-family:
-      Inter,
-      system-ui,
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
-      sans-serif;
+  Inter,
+  system-ui,
+  -apple-system,
+  BlinkMacSystemFont,
+  "Segoe UI",
+  sans-serif;
 
-  color: #000000;
+  color: #f2f3f5;
 
-  background: #837b7b;
+  background: #111318;
 }
-.App{
-  height: 100vh;
+
+.workspace{
+  flex: 1;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
 
+.app{
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /*
+      Запретит всему app прокручиваться
+      Разрешим прокрутку только для MessageList
+  */
+  overflow: hidden;
+}
 
 .chat{
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: hidden; /* Потому что chat целиком не должен прокручиваться, только MessageList внутри него */
 }
-.chat > :deep(*) {
-  min-width: 0;
-}
+
 .chat-info{
   padding: 20px 24px;
-  border-bottom: 1px solid #000000;
-  flex-shrink: 0;
+  border-bottom: 1px solid #252830;
 }
+
 .chat-info h2{
   margin: 0;
   font-size: 16px;
 }
+
 .chat-info p{
   margin: 5px 0 0;
-  color: #045a9f;
+  color: #858c98;
   font-size: 13px;
 }
+
 </style>
+
+
+
+
+
+
+
+
+
+
