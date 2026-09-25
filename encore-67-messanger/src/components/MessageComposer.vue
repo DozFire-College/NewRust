@@ -34,11 +34,11 @@ async function selectImage(){
       {
         name:"Image",
         extensions:[
-            "png",
-            "jpg",
-            "jpeg",
-            "webp",
-            "gif"
+          "png",
+          "jpg",
+          "jpeg",
+          "webp",
+          "gif"
         ]
       }
     ]
@@ -74,9 +74,9 @@ async function selectImage(){
       @submit.prevent="submitMessage"
   >
     <button
-      type="button"
-      class="image-button"
-      @click="selectImage"
+        type="button"
+        class="image-button"
+        @click="selectImage"
     >
       📎
     </button>

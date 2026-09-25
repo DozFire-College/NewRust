@@ -20,33 +20,43 @@ import ChatSidebar from "./components/ChatSidebar.vue";
 import type { Chat } from "./types/chats";
 
 import type { Message } from "./types/message.ts";
-import ProfilerEditor from "./components/ProfilerEditor.vue";
+
 import type {ProfileUpdate} from "./types/user";
+
+import ProfileEditor from "./components/ProfileEditor.vue";
+
 const isProfileOpen = ref(false);
+
 function openProfile(){
   isProfileOpen.value = true;
 }
+
 function closeProfile(){
   isProfileOpen.value = false;
 }
 
-async function saveProfile(profile: ProfileUpdate,){
+
+async function saveProfile( profile: ProfileUpdate, ){
   if (!db) return;
-  if(!currentUser.value) return;
+  if (!currentUser.value) return;
 
   await db.execute(
       `
-      UPDATE users
-      SET display_name = $1,
+        UPDATE users
+
+        SET
+          display_name = $1,
           status = $2
 
-      WHERE  id = $3
+        WHERE id = $3
       `,
-      [profile.displayName,
-      profile.status,
-      currentUser.value.id,
+      [
+        profile.displayName,
+        profile.status,
+        currentUser.value.id,
       ],
   );
+
   currentUser.value.display_name = profile.displayName;
   currentUser.value.status = profile.status;
 
@@ -55,8 +65,10 @@ async function saveProfile(profile: ProfileUpdate,){
         activeChat.value.id,
     );
   }
+
   closeProfile();
 }
+
 const users = ref<User[]>([]);
 
 const currentUser = ref<User | null>(null);
@@ -86,7 +98,7 @@ async function loadChats(){
   if (!db) return;
 
   chats.value = await db.select<Chat[]>(
-    "SELECT id, title, subtitle FROM chats ORDER BY id ASC",
+      "SELECT id, title, subtitle FROM chats ORDER BY id ASC",
   );
 
   if (chats.value.length > 0){
@@ -109,35 +121,47 @@ async function loadMessages(chatId: number){
 
   // Читаем данные из таблицы messages
   messages.value = await db.select<Message[]>(
-    `SELECT messages.id, messages.chat_id,messages.author_id, messages.display_name, messages.type,messages.body, messages.attachment, messages.created_at
-        FROM messages INNER JOIN users ON users.id = messages.author_id
-        WHERE chat_id = $1 ORDER BY id ASC`
+      `SELECT
+         messages.id,
+         messages.chat_id,
+         messages.author_id,
+         users.display_name AS author_name,
+         users.avatar_path AS author_avatar,
+         messages.type,
+         messages.body,
+         messages.attachment,
+         messages.created_at
+       FROM messages
+              INNER JOIN users
+                         ON users.id = messages.author_id
+       WHERE messages.chat_id = $1
+       ORDER BY messages.id ASC`,
       [chatId],
   );
 }
 
-async function  loadUsers(){
+async function loadUsers(){
   if(!db) return;
 
   users.value =
       await  db.select<User[]>(
           `
-          SELECT
-          id,
-          username,
-          display_name,
-          avatar_path,
-          status,
-          created_at
-          FROM users
-          ORDER BY id ASC`,
+            SELECT
+              id,
+              username,
+              display_name,
+              avatar_path,
+              status,
+              created_at
+            FROM users
+            ORDER BY id ASC
+          `,
       );
-  if(
-      users.value.length > 0 && currentUser.value === null)
-  {
+  if (users.value.length > 0 && currentUser.value === null){
     currentUser.value = users.value[0];
   }
 }
+
 // Функция отправки нового сообщения
 async function sendMessage(body: string){
   if (!db) return;
@@ -147,22 +171,22 @@ async function sendMessage(body: string){
   if (!currentUser.value) return;
 
   await db.execute(
-    `
-       INSERT INTO messages (
-            chat_id,
-            author_id,
-            type,
-            body,
-            attachment
-       )
-       VALUES ($1, $2, $3, $4, $5)
-    `,
-      [
-          activeChat.value.id,
-          currentUser.value.id,
-          "text",
+      `
+        INSERT INTO messages (
+          chat_id,
+          author_id,
+          type,
           body,
-          null,
+          attachment
+        )
+        VALUES ($1, $2, $3, $4, $5)
+      `,
+      [
+        activeChat.value.id,
+        currentUser.value.id,
+        "text",
+        body,
+        null,
       ],
   );
   await loadMessages(activeChat.value.id)
@@ -175,35 +199,34 @@ async function sendImage(path:string){
   if (!activeChat.value)
     return;
 
-  if (!currentUser.value)
-    return;
+  if (!currentUser.value) return;
 
   await db.execute(
       `
         INSERT INTO messages
         (
-           chat_id,
-           author_id,
-           type,
-           body,
-           attachment
+          chat_id,
+          author_id,
+          type,
+          body,
+          attachment
         )
 
         VALUES
-        (
+          (
             $1,
             $2,
             $3,
             $4,
             $5
-        )
+          )
       `,
       [
-          activeChat.value.id,
-          currentUser.value.id,
-          "image",
-          null,
-          path,
+        activeChat.value.id,
+        currentUser.value.id,
+        "image",
+        null,
+        path,
       ]
   );
 
@@ -218,9 +241,8 @@ onMounted(async()=>{
     // Открываем бд
     db = await Database.load("sqlite:messenger.db");
 
-    await loadUsers();
-
     // Загружаем из базы старые сообщения
+    await loadUsers();
     await loadChats();
 
     // Показываем успешеное состоние
@@ -244,23 +266,24 @@ onMounted(async()=>{
         @select="selectUser"
         @profile="openProfile"
     />
+    <p v-else class="boot-status">{{ status }}</p>
     <div
         v-if="currentUser"
-        class="workspace">
+        class="workspace"
+    >
       <ChatSidebar
           :chats="chats"
           :active-chat-id="activeChatId"
           @select="selectChat"
-
       />
       <section class="chat">
         <template v-if="activeChat">
-          <ChatInfo
-            :title="activeChat.title"
-            :subtitle="activeChat.subtitle"
-          />
+          <div class="chat-info">
+            <h2>{{ activeChat.title }}</h2>
+            <p>{{ activeChat.subtitle }}</p>
+          </div>
           <MessageList
-              :key="activeChatId"
+              :key="activeChat.id"
               :messages="messages"
               :current-user-id="currentUser.id"
           />
@@ -271,14 +294,13 @@ onMounted(async()=>{
         </template>
       </section>
     </div>
-    <ProfilerEditor
-     v-if="isProfileOpen && currentUser"
-    :key="currentUser.id"
-    :user="currentUser"
-    @save="saveProfile"
-    @close="closeProfile"
-
-    />
+    <ProfileEditor
+        v-if="isProfileOpen && currentUser"
+        :key="currentUser.id"
+        :user="currentUser"
+        @save="saveProfile"
+        @close="closeProfile"
+    ></ProfileEditor>
   </main>
 </template>
 
@@ -297,12 +319,12 @@ onMounted(async()=>{
   margin: 0;
 
   font-family:
-  Inter,
-  system-ui,
-  -apple-system,
-  BlinkMacSystemFont,
-  "Segoe UI",
-  sans-serif;
+      Inter,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
 
   color: #f2f3f5;
 
@@ -325,6 +347,11 @@ onMounted(async()=>{
       Разрешим прокрутку только для MessageList
   */
   overflow: hidden;
+}
+
+.boot-status{
+  margin: 24px;
+  color: #858c98;
 }
 
 .chat{
@@ -352,13 +379,3 @@ onMounted(async()=>{
 }
 
 </style>
-
-
-
-
-
-
-
-
-
-

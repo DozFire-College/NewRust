@@ -19,7 +19,7 @@ defineProps<{
       }"
   >
     <p
-      v-if="
+        v-if="
         message.type==='text'
       "
     >

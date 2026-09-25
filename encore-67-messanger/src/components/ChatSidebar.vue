@@ -17,33 +17,33 @@ function selectChat(chat: Chat){
 </script>
 
 <template>
-<aside class="sidebar">
-  <div class="sidebar__header">
-    Чаты
-  </div>
+  <aside class="sidebar">
+    <div class="sidebar__header">
+      Чаты
+    </div>
 
-  <div class="sidebar__list">
-    <button
-      v-for="chat in chats"
-      :key="chat.id"
-      type="button"
-      class="chat-button"
-      :class="{
+    <div class="sidebar__list">
+      <button
+          v-for="chat in chats"
+          :key="chat.id"
+          type="button"
+          class="chat-button"
+          :class="{
         'chat-button--active':
         chat.id === activeChatId
       }"
-      @click="selectChat(chat)"
-    >
-      <strong class="chat-button__title">
-        {{ chat.title }}
-      </strong>
+          @click="selectChat(chat)"
+      >
+        <strong class="chat-button__title">
+          {{ chat.title }}
+        </strong>
 
-      <span class="chat-button__subtitle">
+        <span class="chat-button__subtitle">
         {{ chat.subtitle }}
       </span>
-    </button>
-  </div>
-</aside>
+      </button>
+    </div>
+  </aside>
 </template>
 
 <style scoped>

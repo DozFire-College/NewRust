@@ -59,9 +59,9 @@ onMounted(scrollToBottom);
           :is-own="message.author_id === currentUserId"
       />
       <div
-        ref="bottom-anchor"
-        class="bottom-anchor"
-        aria-hidden="true"
+          ref="bottom-anchor"
+          class="bottom-anchor"
+          aria-hidden="true"
       >
       </div>
     </div>

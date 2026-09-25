@@ -22,19 +22,19 @@ function selectUser(user: User){
       Пишет:
     </span>
     <button
-      v-for="user in users"
-      :key="user.id"
-      type="button"
-      class="user-switcher__button"
+        v-for="user in users"
+        :key="user.id"
+        type="button"
+        class="user-switcher__button"
 
-      :class="{
+        :class="{
         'user-switcher__button--active':
         user.id === currentUserId
       }"
 
-      @click="selectUser(user)"
+        @click="selectUser(user)"
     >
-     {{ user.display_name }}
+      {{ user.display_name }}
     </button>
   </div>
 </template>
