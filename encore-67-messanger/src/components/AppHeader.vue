@@ -37,13 +37,9 @@ function selectUser(user: User){
           :current-user-id="currentUser.id"
           @select="selectUser"
       />
-      <button
-          type="button"
-          class="profile-open-button"
-          @click="emit('profile')"
-      >
-        Профиль
-      </button>
+      <button type="button"
+      class="profile-open-button"
+      @click="emit('profile')"> Профиль</button>
     </div>
     <span class="badge">
         Локально

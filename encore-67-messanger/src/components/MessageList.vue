@@ -15,6 +15,10 @@ const props = defineProps<{
   currentUserId: number;
 }>();
 
+const emit = defineEmits<{
+  (e: 'image-click', url: string): void;
+}>();
+
 const bottomAnchor = useTemplateRef<HTMLDivElement>("bottom-anchor");
 
 async function scrollToBottom(){
@@ -57,11 +61,12 @@ onMounted(scrollToBottom);
           :key="message.id"
           :message="message"
           :is-own="message.author_id === currentUserId"
+          @image-click="(url) => emit('image-click', url)"
       />
       <div
-          ref="bottom-anchor"
-          class="bottom-anchor"
-          aria-hidden="true"
+        ref="bottom-anchor"
+        class="bottom-anchor"
+        aria-hidden="true"
       >
       </div>
     </div>

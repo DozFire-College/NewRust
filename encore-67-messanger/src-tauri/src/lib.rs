@@ -175,7 +175,7 @@ pub fn run() {
             description: "message_attachments",
             sql: include_str!("../migrations/0003_message_attachments.sql"),
             kind: MigrationKind::Up,
-        }
+        },
         Migration {
             version: 4,
             description: "create_users-and_link_messages",
